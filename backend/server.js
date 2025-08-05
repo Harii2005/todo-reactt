@@ -9,6 +9,8 @@ const passport = require('passport');
 const session = require('express-session');
 const LocalStrategy = require('passport-local');
 
+
+//authentification
 const sessionOptions = {
     secret : process.env.SECRET,
     resave : false,
@@ -19,8 +21,6 @@ const sessionOptions = {
         httpOnly: true,
     }
 }
-
-
 app.use(express.urlencoded({extended : true}));
 
 app.use(passport.initialize());

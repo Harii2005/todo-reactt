@@ -1,12 +1,18 @@
 import Todoo from "./Todoo.jsx"
 import './App.css'
+import SignUp from './SignUp';
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 function App() {
 
   return (
     <>
-      <button>SignIn</button>
-      <Todoo />
+      <Router>
+        <Routes>
+          <Route path="/signup" element={<SignUp/>}></Route>
+          <Route path="/" element={<Todoo />}></Route>
+        </Routes>
+      </Router>
     </>
   )
 }

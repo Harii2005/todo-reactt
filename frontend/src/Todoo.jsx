@@ -1,9 +1,13 @@
 import { v4 as uuidv4 } from 'uuid';
 import { useState } from "react";
-import "./Todoo.css"
+import "./Todoo.css";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
+import SignUp from './SignUp';
+
 
 export default function Todoo(){
 
+    const navigate = useNavigate(); // Initialize useNavigate
     let [todos , setTodos] = useState([{ task : "demo-task" , isDone : false , id : uuidv4() }]);
     let [newTask , setNewTask] = useState("");
 
@@ -49,6 +53,7 @@ export default function Todoo(){
 
     return(
         <>
+             <button onClick={() => navigate("/signup")}>SignUp</button>
             <div className='container'>
                 <div>
                     <h1>Todo App</h1>
