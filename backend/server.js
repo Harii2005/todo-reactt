@@ -4,32 +4,34 @@ const app = express();
 const port = process.env.PORT;
 const mongoose = require('mongoose');
 const URL = process.env.MONGO_URL;
-const User = require('./Models/User');
-const passport = require('passport');
-const session = require('express-session');
-const LocalStrategy = require('passport-local');
+const cors = require('cors');
+const loginRoute = require('./route/LoginRoute');
+const signUpRoute = require('./route/SignupRoute');
+const todoRoute = require('./route/todoRoute');
+const authenticate = require('./middleware/authMiddleware');
+
+// Middleware
+app.use(cors()); // Enable Cross-Origin Resource Sharing
+app.use(express.json()); // Parse JSON request bodies
 
 
-//authentification
-const sessionOptions = {
-    secret : process.env.SECRET,
-    resave : false,
-    saveUninitialized : true,
-    cookie: {
-        expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days from now
-        maxAge: 1000 * 60 * 60 * 24 * 7, // Also 7 days
-        httpOnly: true,
-    }
-}
-app.use(express.urlencoded({extended : true}));
-
-app.use(passport.initialize());
-app.use(session(sessionOptions));
-passport.use(new LocalStrategy(User.authenticate()));
-passport.serializeUser(User.serializeUser());
-passport.deserializeUser(User.deserializeUser());
+// Protected routes - require authentication
+app.use('/api/todos', authenticate, todoRoute);
 
 
+// Routes
+app.use('/api', loginRoute);
+app.use('/api', signUpRoute);
+
+// Home route
+app.get('/', (req, res) => {
+    res.send('API is running...');
+});
+
+
+app.get('/' , (req , res) => {
+    res.send('home route');
+});
 
 
 app.listen(port , () => {
@@ -37,6 +39,20 @@ app.listen(port , () => {
     mongoose.connect(URL);
     console.log("DB conncted");
 })
-app.get('/' , (req , res) => {
-    res.send('home route');
-});
+
+
+// app.get('/')
+
+// app.post("/user/generateToken", (req, res) => {
+//     // Validate User Here
+//     // Then generate JWT Token
+
+//     let jwtSecretKey = process.env.JWT_SECRET_KEY;
+//     let data = {
+//         time: Date(),
+//         userId: 12,
+//     }
+
+//     const token = jwt.sign(data, jwtSecretKey);
+//     res.send(token);
+// });

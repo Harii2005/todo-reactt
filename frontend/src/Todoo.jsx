@@ -1,90 +1,213 @@
-import { v4 as uuidv4 } from 'uuid';
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "./Todoo.css";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
-// import SignUp from './SignUp';
 
+export default function Todoo() {
+  const [todos, setTodos] = useState([]);
+  const [newTask, setNewTask] = useState("");
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
-export default function Todoo(){
+  // Fetch todos when the component mounts
+  useEffect(() => {
+    fetchTodos();
+  }, []);
 
-    const navigate = useNavigate(); // Initialize useNavigate
-    let [todos , setTodos] = useState([{ task : "demo-task" , isDone : false , id : uuidv4() }]);
-    let [newTask , setNewTask] = useState("");
-
-    let updateTodoValue = (event) => {
-        event.preventDefault();
-        setNewTask(event.target.value);
-        //console.log(event.target.value);
+  // Get token from localStorage
+  const getToken = () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login"); // Redirect to /login to render Login.jsx
+      return null;
     }
+    return token;
+  };
 
-    let addNewTask = () => {
-        setTodos((prevTodo) =>(
-            [...prevTodo, {task : newTask , id : uuidv4() , isDone : false  }]
-        ));
-        setNewTask("");
+  // Fetch todos from the backend
+  const fetchTodos = async () => {
+    const token = getToken();
+    if (!token) return;
+
+    try {
+      const response = await fetch("http://localhost:8080/api/todos", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch todos");
+      }
+
+      const data = await response.json();
+      setTodos(data);
+    } catch (err) {
+      setError(err.message);
     }
+  };
 
-    let deleteTodo = (id) =>{
-        setTodos((prevTodos) => prevTodos.filter((prevTodo)=> prevTodo.id != id));
+  // Add a new todo
+  const addNewTask = async () => {
+    if (!newTask.trim()) return;
+
+    const token = getToken();
+    if (!token) return;
+
+    try {
+      const response = await fetch("http://localhost:8080/api/todos", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ task: newTask }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add todo");
+      }
+
+      const savedTodo = await response.json();
+      setTodos([...todos, savedTodo]);
+      setNewTask("");
+    } catch (err) {
+      setError(err.message);
     }
+  };
 
-    let markAsDone = (id) => {
-        setTodos((prevTodos)=> (
-                prevTodos.map((prevTodo) => {
-                    if(prevTodo.id === id) {
-                        //console.log("done");
-                        return {...prevTodo , isDone : true}
-                        
-                    }else{
-                        return prevTodo;
-                    }
-                }
-        )));
+  // Delete a todo
+  const deleteTodo = async (id) => {
+    const token = getToken();
+    if (!token) return;
+
+    try {
+      const response = await fetch(`http://localhost:8080/api/todos/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete todo");
+      }
+
+      setTodos(todos.filter((todo) => todo._id !== id));
+    } catch (err) {
+      setError(err.message);
     }
+  };
 
-    let allDone = () =>{
-        setTodos((prevTodos) =>( 
-            prevTodos.map((prevTodo)=>{
-                return {...prevTodo , isDone : true};
-            })
-        ));
+  // Mark a todo as done/undone
+  const markAsDone = async (id, isDone) => {
+    const token = getToken();
+    if (!token) return;
+
+    try {
+      const response = await fetch(`http://localhost:8080/api/todos/${id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ isDone }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update todo");
+      }
+
+      const updatedTodo = await response.json();
+      setTodos(todos.map((todo) => (todo._id === id ? updatedTodo : todo)));
+    } catch (err) {
+      setError(err.message);
     }
+  };
 
+  // Mark all todos as done
+  const allDone = async () => {
+    const token = getToken();
+    if (!token) return;
 
-    return(
-        <>
-             <button onClick={() => navigate("/signup")}>SignUp</button>
-            <div className='container'>
-                <div>
-                    <h1>Todo App</h1>
-                    <input
-                        style={{marginLeft: "10px" ,padding : "5px"}}
-                        placeholder='add task'
-                        type='text'
-                        value={newTask}
-                        onChange={updateTodoValue}
-                    />
-                    <button onClick={addNewTask} style={{marginLeft: "10px" ,padding : " 8px 30px 8px 30px", backgroundColor : "skyblue"}}> Add </button>
-                </div>
-                <div>
-                    <h4>task to do</h4>
-                    <ul>
-                        {todos.map((todo) => 
-                            <li key={todo.id} style={todo.isDone ? {textDecoration : "line-through"} : {}} >
-                                {todo.task} 
-                                <button onClick={() => deleteTodo(todo.id)} style={{ marginLeft: "50px" }}>delete</button>
-                                <button onClick={()=>markAsDone(todo.id)} >{todo.isDone ? "done" : "isDone"}</button>
-                            </li>
-                        )}
-                        <br/>
-                        <button 
-                            style={{ marginRight: "40px" ,backgroundColor : "red", paddingLeft : "35px 35px"}}
-                            onClick={() =>allDone()}
-                        > all done </button>
-                    </ul>
+    try {
+      const response = await fetch("http://localhost:8080/api/todos/markall/done", {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-                </div>
-            </div>
-        </>
-    );
+      if (!response.ok) {
+        throw new Error("Failed to mark all todos as done");
+      }
+
+      setTodos(todos.map((todo) => ({ ...todo, isDone: true })));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  return (
+    <>
+      <button onClick={() => navigate("/signup")}>SignUp</button>
+      <div className="container">
+        <div>
+          <h1>Todo App</h1>
+          <input
+            style={{ marginLeft: "10px", padding: "5px" }}
+            placeholder="add task"
+            type="text"
+            value={newTask}
+            onChange={(e) => setNewTask(e.target.value)}
+          />
+          <button
+            onClick={addNewTask}
+            style={{
+              marginLeft: "10px",
+              padding: "8px 30px",
+              backgroundColor: "skyblue",
+            }}
+          >
+            Add
+          </button>
+        </div>
+        <div>
+          <h4>Tasks to do</h4>
+          {error && <p style={{ color: "red" }}>{error}</p>}
+          <ul>
+            {todos.map((todo) => (
+              <li
+                key={todo._id}
+                style={todo.isDone ? { textDecoration: "line-through" } : {}}
+              >
+                {todo.task}
+                <button
+                  onClick={() => deleteTodo(todo._id)}
+                  style={{ marginLeft: "50px" }}
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={() => markAsDone(todo._id, !todo.isDone)}
+                >
+                  {todo.isDone ? "Undo" : "Done"}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <br />
+          <button
+            style={{
+              marginRight: "40px",
+              backgroundColor: "red",
+              padding: "8px 30px",
+            }}
+            onClick={allDone}
+          >
+            Mark All Done
+          </button>
+        </div>
+      </div>
+    </>
+  );
 }

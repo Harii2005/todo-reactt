@@ -1,58 +1,72 @@
 import React from "react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
+
 export default function signUp() {
-  const [formData , setformData] = useState({
-    username : "",
-    email : "",
-    password : "",
+  const [formData, setformData] = useState({
+    username: "",
+    email: "",
+    password: "",
   });
 
-  const handleShowform = async()=>{
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const navigate = useNavigate();
 
-    // Send a GET request when the "SignUp" button is clicked
-    if(!showform){
-      try{
-        const response  = await fetch("http://localhost:8080/api/signup",{
-          method : "GET",
-        });
-        const data = await response.json();
-        console.log("GET response : " , data);
-
-      }catch(err){
-        console.error("Error during GET request:", err);
-      }
-    }
-  }
-
-  const handleInputChange =(e) => {
-    const {name , value} = e.target;
-    setformData({...formData , [name] : value});
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setformData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = async() => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setSuccess("");
 
     // Send a POST request when the form is submitted
-    try{
+    try {
       const response = await fetch("http://localhost:8080/api/signup", {
-        method : "POST",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body : JSON.stringify(formData),
+        body: JSON.stringify(formData),
       });
       const data = await response.json();
-      console.log("POST Response:", data); 
-    }catch(err){
-      console.log("err : " , err);
+
+      if (!response.ok) {
+        throw new Error(data.error || "Registration failed");
+      }
+      // Show success message
+      setSuccess("Registration successful! Redirecting to login...");
+
+      // Clear the form
+      setFormData({
+        username: "",
+        email: "",
+        password: "",
+      });
+
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
+
+      console.log("POST Response:", data);
+    } catch (err) {
+      console.log("err : ", err);
     }
   };
 
-
   return (
-    <>
+    <div className="signup-container">
+      <h2>Create an Account</h2>
+
+      {error && <div className="error-message">{error}</div>}
+      {success && <div className="success-message">{success}</div>}
+
       <form onSubmit={handleSubmit}>
-        <div>
+        <div className="form-group">
           <label htmlFor="username">Username:</label>
           <input
             type="text"
@@ -63,7 +77,8 @@ export default function signUp() {
             required
           />
         </div>
-        <div>
+
+        <div className="form-group">
           <label htmlFor="email">Email:</label>
           <input
             type="email"
@@ -74,7 +89,8 @@ export default function signUp() {
             required
           />
         </div>
-        <div>
+
+        <div className="form-group">
           <label htmlFor="password">Password:</label>
           <input
             type="password"
@@ -82,11 +98,24 @@ export default function signUp() {
             name="password"
             value={formData.password}
             onChange={handleInputChange}
+            minLength="6"
             required
           />
         </div>
-        <button type="submit">Submit</button>
+
+        <div className="form-actions">
+          <button type="submit" className="signup-button">
+            Sign Up
+          </button>
+        </div>
       </form>
-    </>
+
+      <div className="login-link">
+        <p>
+          Already have an account?{" "}
+          <span onClick={() => navigate("/login")}>Login</span>
+        </p>
+      </div>
+    </div>
   );
 }
