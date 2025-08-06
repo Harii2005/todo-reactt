@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useState } from "react";
 import "./Todoo.css";
 import { useNavigate } from "react-router-dom"; // Import useNavigate
-import SignUp from './SignUp';
+// import SignUp from './SignUp';
 
 
 export default function Todoo(){
