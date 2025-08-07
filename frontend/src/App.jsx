@@ -12,7 +12,7 @@ function App() {
         <Routes>
           <Route path="/signup" element={<SignUp />} />
           <Route path="/login" element={<Login />} /> {/* Add route for /login */}
-          <Route path="/" element={<Todoo />} />
+          <Route path="/todo" element={<Todoo />} />
           <Route path="*" element={<div>Page not found</div>} />
         </Routes>
       </Router>

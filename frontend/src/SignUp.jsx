@@ -1,9 +1,8 @@
-import React from "react";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-export default function signUp() {
-  const [formData, setformData] = useState({
+export default function SignUp() {  
+  const [formData, setFormData] = useState({
     username: "",
     email: "",
     password: "",
@@ -15,7 +14,7 @@ export default function signUp() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setformData({ ...formData, [name]: value });
+    setFormData({ ...formData, [name]: value });  
   };
 
   const handleSubmit = async (e) => {
@@ -23,7 +22,6 @@ export default function signUp() {
     setError("");
     setSuccess("");
 
-    // Send a POST request when the form is submitted
     try {
       const response = await fetch("http://localhost:8080/api/signup", {
         method: "POST",
@@ -32,36 +30,26 @@ export default function signUp() {
         },
         body: JSON.stringify(formData),
       });
+
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.error || "Registration failed");
       }
-      // Show success message
+
       setSuccess("Registration successful! Redirecting to login...");
 
-      // Clear the form
-      setFormData({
-        username: "",
-        email: "",
-        password: "",
-      });
+      setFormData({ username: "", email: "", password: "" });
 
-      // Redirect to login after 2 seconds
-      setTimeout(() => {
-        navigate("/login");
-      }, 2000);
-
-      console.log("POST Response:", data);
+      setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
-      console.log("err : ", err);
+      setError(err.message || "Something went wrong.");
     }
   };
 
   return (
     <div className="signup-container">
       <h2>Create an Account</h2>
-
       {error && <div className="error-message">{error}</div>}
       {success && <div className="success-message">{success}</div>}
 
@@ -113,7 +101,7 @@ export default function signUp() {
       <div className="login-link">
         <p>
           Already have an account?{" "}
-          <span onClick={() => navigate("/login")}>Login</span>
+          <button onClick={() => navigate("/login")}>Login</button>
         </p>
       </div>
     </div>

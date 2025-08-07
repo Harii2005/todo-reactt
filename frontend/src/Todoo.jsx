@@ -27,7 +27,6 @@ export default function Todoo() {
   const fetchTodos = async () => {
     const token = getToken();
     if (!token) return;
-
     try {
       const response = await fetch("http://localhost:8080/api/todos", {
         headers: {
@@ -130,12 +129,15 @@ export default function Todoo() {
     if (!token) return;
 
     try {
-      const response = await fetch("http://localhost:8080/api/todos/markall/done", {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(
+        "http://localhost:8080/api/todos/markall/done",
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to mark all todos as done");
@@ -151,6 +153,15 @@ export default function Todoo() {
     <>
       <button onClick={() => navigate("/signup")}>SignUp</button>
       <div className="container">
+        <button
+          onClick={() => {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            navigate("/login");
+          }}
+        >
+          Logout
+        </button>
         <div>
           <h1>Todo App</h1>
           <input
@@ -187,9 +198,7 @@ export default function Todoo() {
                 >
                   Delete
                 </button>
-                <button
-                  onClick={() => markAsDone(todo._id, !todo.isDone)}
-                >
+                <button onClick={() => markAsDone(todo._id, !todo.isDone)}>
                   {todo.isDone ? "Undo" : "Done"}
                 </button>
               </li>
