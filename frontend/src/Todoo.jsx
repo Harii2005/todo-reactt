@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "./AuthContext";
 import "./Todoo.css";
 
 export default function Todoo() {
@@ -7,26 +8,19 @@ export default function Todoo() {
   const [newTask, setNewTask] = useState("");
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const { token, logout, user } = useAuth();
 
   // Fetch todos when the component mounts
   useEffect(() => {
-    fetchTodos();
-  }, []);
-
-  // Get token from localStorage
-  const getToken = () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login"); // Redirect to /login to render Login.jsx
-      return null;
+    if (token) {
+      fetchTodos();
     }
-    return token;
-  };
+  }, [token]);
 
   // Fetch todos from the backend
   const fetchTodos = async () => {
-    const token = getToken();
     if (!token) return;
+
     try {
       const response = await fetch("http://localhost:8080/api/todos", {
         headers: {
@@ -35,6 +29,12 @@ export default function Todoo() {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          // Token is invalid, logout user
+          logout();
+          navigate("/login");
+          return;
+        }
         throw new Error("Failed to fetch todos");
       }
 
@@ -48,9 +48,10 @@ export default function Todoo() {
   // Add a new todo
   const addNewTask = async () => {
     if (!newTask.trim()) return;
-
-    const token = getToken();
-    if (!token) return;
+    if (!token) {
+      setError("You must be logged in to add tasks");
+      return;
+    }
 
     try {
       const response = await fetch("http://localhost:8080/api/todos", {
@@ -63,12 +64,18 @@ export default function Todoo() {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          logout();
+          navigate("/login");
+          return;
+        }
         throw new Error("Failed to add todo");
       }
 
       const savedTodo = await response.json();
       setTodos([...todos, savedTodo]);
       setNewTask("");
+      setError(null); // Clear any previous errors
     } catch (err) {
       setError(err.message);
     }
@@ -76,8 +83,10 @@ export default function Todoo() {
 
   // Delete a todo
   const deleteTodo = async (id) => {
-    const token = getToken();
-    if (!token) return;
+    if (!token) {
+      setError("You must be logged in to delete tasks");
+      return;
+    }
 
     try {
       const response = await fetch(`http://localhost:8080/api/todos/${id}`, {
@@ -88,6 +97,11 @@ export default function Todoo() {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          logout();
+          navigate("/login");
+          return;
+        }
         throw new Error("Failed to delete todo");
       }
 
@@ -99,8 +113,10 @@ export default function Todoo() {
 
   // Mark a todo as done/undone
   const markAsDone = async (id, isDone) => {
-    const token = getToken();
-    if (!token) return;
+    if (!token) {
+      setError("You must be logged in to update tasks");
+      return;
+    }
 
     try {
       const response = await fetch(`http://localhost:8080/api/todos/${id}`, {
@@ -113,6 +129,11 @@ export default function Todoo() {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          logout();
+          navigate("/login");
+          return;
+        }
         throw new Error("Failed to update todo");
       }
 
@@ -125,8 +146,10 @@ export default function Todoo() {
 
   // Mark all todos as done
   const allDone = async () => {
-    const token = getToken();
-    if (!token) return;
+    if (!token) {
+      setError("You must be logged in to update tasks");
+      return;
+    }
 
     try {
       const response = await fetch(
@@ -140,6 +163,11 @@ export default function Todoo() {
       );
 
       if (!response.ok) {
+        if (response.status === 401) {
+          logout();
+          navigate("/login");
+          return;
+        }
         throw new Error("Failed to mark all todos as done");
       }
 
@@ -150,73 +178,133 @@ export default function Todoo() {
   };
 
   return (
-    <>
-      <button onClick={() => navigate("/signup")}>SignUp</button>
-      <div className="container">
-        <button
-          onClick={() => {
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            navigate("/login");
-          }}
-        >
-          Logout
-        </button>
-        <div>
-          <h1>Todo App</h1>
-          <input
-            style={{ marginLeft: "10px", padding: "5px" }}
-            placeholder="add task"
-            type="text"
-            value={newTask}
-            onChange={(e) => setNewTask(e.target.value)}
-          />
-          <button
-            onClick={addNewTask}
-            style={{
-              marginLeft: "10px",
-              padding: "8px 30px",
-              backgroundColor: "skyblue",
-            }}
-          >
-            Add
-          </button>
-        </div>
-        <div>
-          <h4>Tasks to do</h4>
-          {error && <p style={{ color: "red" }}>{error}</p>}
-          <ul>
-            {todos.map((todo) => (
-              <li
-                key={todo._id}
-                style={todo.isDone ? { textDecoration: "line-through" } : {}}
+    <div className="todo-page">
+      <div className="todo-container">
+        {/* Header Section */}
+        <div className="todo-header">
+          <div className="header-content">
+            <div className="header-title">
+              <h1>Welcome back, {user?.username || "User"}!</h1>
+              <p className="header-subtitle">Stay organized and productive</p>
+            </div>
+            <div className="header-actions">
+              <button
+                onClick={() => {
+                  logout();
+                  navigate("/login");
+                }}
+                className="logout-button"
               >
-                {todo.task}
-                <button
-                  onClick={() => deleteTodo(todo._id)}
-                  style={{ marginLeft: "50px" }}
-                >
-                  Delete
-                </button>
-                <button onClick={() => markAsDone(todo._id, !todo.isDone)}>
-                  {todo.isDone ? "Undo" : "Done"}
-                </button>
-              </li>
-            ))}
-          </ul>
-          <br />
-          <button
-            style={{
-              marginRight: "40px",
-              backgroundColor: "red",
-              padding: "8px 30px",
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Add Task Section */}
+        <div className="add-task-section">
+          <form
+            className="add-task-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              addNewTask();
             }}
-            onClick={allDone}
           >
-            Mark All Done
-          </button>
+            <div className="add-task-input-group">
+              <label htmlFor="new-task">Add a new task</label>
+              <input
+                id="new-task"
+                className="add-task-input"
+                placeholder="What needs to be done?"
+                type="text"
+                value={newTask}
+                onChange={(e) => setNewTask(e.target.value)}
+              />
+            </div>
+            <button
+              type="submit"
+              className="add-task-button"
+              disabled={!newTask.trim()}
+            >
+              <span>Add Task</span>
+            </button>
+          </form>
+        </div>
+
+        {/* Tasks Section */}
+        <div className="tasks-section">
+          <div className="tasks-header">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--spacing-3)",
+              }}
+            >
+              <h3 className="tasks-title">Your Tasks</h3>
+              {todos.length > 0 && (
+                <span className="tasks-count">{todos.length}</span>
+              )}
+            </div>
+            {todos.length > 0 && (
+              <div className="bulk-actions">
+                <button
+                  className="mark-all-done-button"
+                  onClick={allDone}
+                  disabled={todos.every((todo) => todo.isDone)}
+                >
+                  Mark All Complete
+                </button>
+              </div>
+            )}
+          </div>
+
+          {error && <div className="error-message">⚠️ {error}</div>}
+
+          {todos.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">📝</div>
+              <h3>No tasks yet</h3>
+              <p>Add your first task above to get started!</p>
+            </div>
+          ) : (
+            <div className="todo-list">
+              {todos.map((todo) => (
+                <div
+                  key={todo._id}
+                  className={`todo-item ${todo.isDone ? "completed" : ""}`}
+                >
+                  <div className="todo-content">
+                    <div
+                      className={`todo-checkbox ${
+                        todo.isDone ? "checked" : ""
+                      }`}
+                      onClick={() => markAsDone(todo._id, !todo.isDone)}
+                    />
+                    <span className="todo-text">{todo.task}</span>
+                  </div>
+                  <div className="todo-actions">
+                    <button
+                      onClick={() => markAsDone(todo._id, !todo.isDone)}
+                      className={`todo-action-button ${
+                        todo.isDone ? "undo-button" : "complete-button"
+                      }`}
+                    >
+                      {todo.isDone ? "Undo" : "Done"}
+                    </button>
+                    <button
+                      onClick={() => deleteTodo(todo._id)}
+                      className="todo-action-button delete-button"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
